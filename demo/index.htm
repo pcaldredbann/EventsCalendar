@@ -2,10 +2,48 @@
 
 <html>
 
-<head></head>
+<head>
+    <style type="text/css">
+        table.event-calendar { width: 600px; border-collapse: collapse; }
+            table.event-calendar th { background-color: #9cf; border: 1px solid #aaa; width: 100px; }
+    </style>
+</head>
 
 <body>
-
+    <table class="event-calendar">
+        <thead>
+            <tr>
+                <th colspan="7">March 2014</th>
+            </tr>
+            <tr>
+                <th>Monday</th>
+                <th>Tuesday</th>
+                <th>Wednesday</th>
+                <th>Thursday</th>
+                <th>Friday</th>
+                <th>Saturday</th>
+                <th>Sunday</th>
+            </tr>
+        </thead>
+        <tbody data-bind="foreach: { data: weeks(), as: 'week' }">
+            <tr data-bind="foreach: { data: week.days, as: 'day' }">
+                <td>
+                    <span data-bind="text: day.date"></span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <script type="text/javascript" src="../libs/jquery/jquery.js"></script>
+    <script type="text/javascript" src="../libs/knockoutjs/knockout.js"></script>
+    <script type="text/javascript" src="../dist/jquery.EventsCalendar.min.js"></script>
+    <script type="text/javascript">
+        $(function() {
+            var $input = $(".event-calendar:first");
+            $input.EventsCalendar();
+            var vm = ko.dataFor($input.get(0));
+            console.log(ko.toJSON(vm));
+        });
+    </script>
 </body>
 
 </html>

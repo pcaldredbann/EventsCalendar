@@ -101,7 +101,7 @@
         
         var calendar = ko.dataFor(this.elems.get(0));
         calendar.initialPeriod(new Date(2014, 2, 1, 0, 0, 0, 0));
-        equal(calendar.weeks().length, 6, "has 6 weeks");
+        deepEqual(calendar.weeks().length, 6, "has 6 weeks");
     });
     
     module("Calendar.Events", {

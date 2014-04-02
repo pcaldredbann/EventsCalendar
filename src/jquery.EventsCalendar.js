@@ -1,10 +1,22 @@
 (function ($) {
     "use strict";
 
+
+    function formatDate(date) {
+        if (date) {
+            var dt = new Date(date),
+                y = dt.getFullYear(),
+                m = dt.getMonth(),
+                d = dt.getDate();
+            return [d, m, y].join('/');
+        }
+    }
+
     function Calendar(data) {
         var self = this;
 
         this.initialPeriod = ko.observable(new Date(data.period.year, data.period.month, 1, 0, 0, 0, 0));
+        this.initialPeriodMonth = ko.computed(function () {}, this);
         this.startDate = ko.computed(function () {
             if (this.initialPeriod()) {
                 var dateCursor = new Date(self.initialPeriod());
@@ -21,37 +33,42 @@
                 return endDate;
             }
         }, this);
-        this.days = ko.computed(function () {
+        this.weeks = ko.computed(function () {
             if (this.startDate() && this.endDate()) {
                 var days = [],
                     dateCursor = new Date(this.startDate());
+
                 do {
-                    days.push(new CalendarDay({
-                        date: new Date(dateCursor)
-                    }));
+                    days.push({
+                        date: new Date(dateCursor),
+                        event: null
+                    });
                     dateCursor.setDate(dateCursor.getDate() + 1);
                 } while (dateCursor.getTime() < this.endDate().getTime());
-                return days;
-            }
-        }, this);
-        this.weeks = ko.computed(function () {
-            if (this.days()) {
+
                 var weeks = [];
-                for (var i = 0; i < this.days().length; i += 7) {
-                    weeks.push(this.days().slice(i, 7));
+                for (var i = 0; i < days.length; i += 7) {
+                    weeks.push(new CalendarWeek({
+                        days: days.slice(i, i + 7)
+                    }));
                 }
+
                 return weeks;
             }
         }, this);
         this.prevPeriod = ko.computed(function () {
-            return $.EventsCalendar.formatDate(this.startDate());
+            return formatDate(this.startDate());
         }, this);
         this.nextPeriod = ko.computed(function () {
-            return $.EventsCalendar.formatDate(this.endDate());
+            return formatDate(this.endDate());
         }, this);
         this.getDate = function (date) {
-            return ko.utils.arrayFirst(self.days(), function (day) {
-                return day.date().getTime() === date.getTime();
+            var flattened = [];
+            ko.utils.arrayForEach(self.weeks(), function (week) {
+                flattened = flattened.concat.apply(flattened, week.days);
+            });
+            return ko.utils.arrayFirst(flattened, function (day) {
+                return day.date.getTime() === date.getTime();
             });
         };
         this.createEvent = function (date, event) {
@@ -63,8 +80,14 @@
         };
     }
 
+    function CalendarWeek(data) {
+        this.days = ko.utils.arrayMap(data.days, function (day) {
+            return new CalendarDay(day);
+        });
+    }
+
     function CalendarDay(data) {
-        this.date = ko.observable(new Date(data.date));
+        this.date = new Date(data.date);
         this.event = ko.observable(data.event);
     }
 
@@ -80,17 +103,6 @@
             return this.each(function () {
                 ko.applyBindings(new Calendar(options), this);
             });
-        }
-    };
-
-    $.EventsCalendar = $.fn.EventsCalendar;
-    $.EventsCalendar.formatDate = function (date) {
-        if (date) {
-            var dt = new Date(date),
-                y = dt.getFullYear(),
-                m = dt.getMonth(),
-                d = dt.getDate();
-            return [d, m, y].join('/');
         }
     };
 
