@@ -1,6 +1,6 @@
 # Events Calendar
 
-Heavily customizable events calendar.
+A generic 6-week events calendar implementing Knockout JS for dynamic refresh.
 
 ## Getting Started
 Download the [production version][min] or the [development version][max].
@@ -14,9 +14,9 @@ In your web page:
 <script src="jquery.js"></script>
 <script src="dist/EventsCalendar.min.js"></script>
 <script>
-jQuery(function($) {
-  $.awesome(); // "awesome"
-});
+    jQuery(function($) {
+        $(".calendar").EventsCalendar();
+    });
 </script>
 ```
 
