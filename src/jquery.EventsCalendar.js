@@ -1,7 +1,32 @@
 (function ($) {
     "use strict";
 
+    ko.commitObservable = function (initialValue) {
+        var _temp = initialValue,
+            _actual = ko.observable(initialValue);
+
+        var result = ko.computed({
+            read: function () {
+                return _actual();
+            },
+            write: function (newValue) {
+                _temp = newValue;
+            },
+            owner: this
+        });
+
+        result.commit = function () {
+            _actual(_temp);
+        };
+        result.rollback = function () {
+            _temp = _actual();
+        };
+
+        return result;
+    };
+
     var Calendar = function (data) {
+        this.header = ko.observable(data.period);
         this.weeks = ko.observableArray(ko.utils.arrayMap((function () {
             var periodParts = data.period.split(' '),
                 startDate = new Date(periodParts[1], data.months.indexOf(periodParts[0]), 1),
@@ -20,8 +45,7 @@
             while (startDate.getTime() < endDate.getTime()) {
                 days.push({
                     date: new Date(startDate),
-                    scheduledEvent: undefined,
-                    scheduleEvent: data.scheduleEvent
+                    onScheduledEventChange: data.onScheduledEventChange
                 });
                 startDate.setDate(startDate.getDate() + 1);
             }
@@ -37,39 +61,42 @@
         }()), function (week) {
             return new CalendarWeek(week);
         }));
+        this.days = ko.computed(function () {
+            if (this.weeks()) {
+                var temp = [];
+                for (var i = 0; i < this.weeks().length; i++) {
+                    temp.push(this.weeks()[i].days());
+                }
+                return [].concat.apply([], temp);
+            }
+        }, this);
+        this.selectedDay = ko.observable(undefined);
     };
 
-    var CalendarWeek = function (data) {
+    var Week = function (data) {
         this.days = ko.observableArray(ko.utils.arrayMap(data.days, function (day) {
             return new CalendarDay(day);
         }));
     };
 
-    var CalendarDay = function (data) {
-        var _scheduledEvent = data.scheduledEvent;
-        
-        this.date = data.date;
-        this.scheduledEvent = function () {
-            return _scheduledEvent;
-        };
-        this.scheduleEvent = function (newScheduledEvent) {
-            if (data.scheduleEvent) {
-                _scheduledEvent = data.scheduleEvent.call(this, newScheduledEvent);
-            } else {
-                _scheduledEvent = newScheduledEvent;
+    var Day = function (data) {
+        var self = this;
+        this.date = ko.observable(data.date);
+        this.scheduledEvent = ko.commitObservable(new ns.Event());
+        this.scheduledEvent.subscribe(function (newValue) {
+            if (newValue) {
+                if (data.onScheduledEventChange && typeof data.onScheduledEventChange === "function") {
+                    data.onScheduledEventChange.call(self, newValue);
+                }
             }
-        };
+        });
     };
-
+    
     $.fn.EventsCalendar = function (options) {
         options = $.extend({
             period: "April 2014",
             months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-            scheduleEvent: function (eventToSchedule) {
-                return $.extend({
-                    eventDate: this.date.toString()
-                }, eventToSchedule);
-            }
+            onScheduledEventChange: function () {}
         }, options);
 
         return this.each(function () {

@@ -3,75 +3,78 @@
 <html>
 
 <head>
+    <link rel="stylesheet" href="../libs/foundation/normalize.css" type="text/css">
+    <link rel="stylesheet" href="../libs/foundation/foundation.min.css" type="text/css">
     <style type="text/css">
-        table.event-calendar {
-            width: 600px;
-            border-collapse: collapse;
+        #eventsCalendar {} #eventsCalendar li {
+            border: 1px solid #eee;
         }
-        table.event-calendar th {
-            background-color: #9cf;
-            border: 1px solid #000;
-            width: 100px;
+        #eventsCalendar li.day-header {
+            font-weight: bold;
         }
-        table.event-calendar td {
-            border: 1px solid #000;
-            padding: 1em;
-            text-align: center;
-        }
-        table.event-calendar td:hover {
-            background-color: #9cf;
+        #eventsCalendar li.day-date {
             cursor: pointer;
-        }
-        table.event-calendar td.is-weekend {
-            background-color: #eee;
-        }
-        table.event-calendar td.has-event span {
-            text-decoration: underline;
         }
     </style>
 </head>
 
-<body>
-    <table class="event-calendar">
-        <thead>
-            <tr>
-                <th colspan="7"></th>
-            </tr>
-            <tr>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-                <th>Saturday</th>
-                <th>Sunday</th>
-            </tr>
-        </thead>
-        <tbody data-bind="foreach: { data: weeks, as: 'week' }">
-            <tr data-bind="foreach: { data: week.days, as: 'day' }">
-                <td data-bind="click: day.scheduleEvent">
-                    <span data-bind="text: day.date().getDate()"></span>
-                    <div data-bind="template: { name: 'scheduledEvent', data: day.event }"></div>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <script id="scheduledEvent" type="text/html">
+<body id="eventsCalendar">
+    <br />
+    <div class="row">
+        <ul class="small-block-grid-7">
+            <li class="day-header text-center center">Monday</li>
+            <li class="day-header text-center">Tuesday</li>
+            <li class="day-header text-center">Wednesday</li>
+            <li class="day-header text-center">Thursday</li>
+            <li class="day-header text-center">Friday</li>
+            <li class="day-header text-center">Saturday</li>
+            <li class="day-header text-center">Sunday</li>
+            <!-- ko foreach: { data: days, as: 'day' } -->
+            <li class="day-date text-center" data-reveal-id="modalScheduledEvent" data-bind="click: $root.selectedDay">
+                <span data-bind="text: day.date().getDate()"></span>
+                <!-- ko template: { name: 'tmpScheduledEvent', data: day.scheduledEvent } -->
+                <!-- /ko -->
+            </li>
+            <!-- /ko -->
+        </ul>
+    </div>
+    <script id="tmpScheduledEvent" type="text/html">
         <p data-bind="text: name"></p>
     </script>
+    <div id="modalScheduledEvent" class="reveal-modal" data-reveal="">
+        <!-- ko with: selectedDay -->
+        <h2>Schedule or edit an event</h2>
+        <p>
+            You can use this form to schedule, edit and remove an event for date.
+        </p>
+        <label>Event Name:</label>
+        <input type="text" data-bind="value: scheduledEvent().name" />
+        <label>Event Time:</label>
+        <input type="text" data-bind="value: scheduledEvent().time" />
+        <button class="btn close-reveal" data-bind="click: scheduledEvent.commit">Save</button>
+        <button class="btn close-reveal" data-bind="click: scheduledEvent.rollback">Cancel</button>
+        <!-- /ko -->
+        <a class="close-reveal-modal close-reveal">&#215;</a>
+    </div>
     <script type="text/javascript" src="../libs/jquery/jquery.js"></script>
     <script type="text/javascript" src="../libs/knockoutjs/knockout.js"></script>
+    <script type="text/javascript" src="../libs/foundation/foundation.min.js"></script>
     <script type="text/javascript" src="../dist/jquery.EventsCalendar.min.js"></script>
     <script type="text/javascript">
         $(function() {
-            $(".event-calendar").EventsCalendar({
+            $(document).foundation({
+                reveal: {
+                    animation: "fadeIn",
+                    animation_speed: 200,
+                    close_on_background_click: true,
+                    dismiss_modal_class: "close-reveal"
+                }
+            });
+
+            $("#eventsCalendar").EventsCalendar({
                 period: "April 2014",
-                scheduleEvent: function () {
-                    if (this.event()) {
-                        this.event(null);
-                    } else {
-                        this.event({ name: "Some event" });
-                    }
+                onScheduledEventChange: function() {
+                    window.alert("You can do things here like save the changes to your database!");
                 }
             });
         });

@@ -1,18 +1,41 @@
 /*
-    Events Calendar - v0.1.0 - [last build on 2014-04-08]
+    Events Calendar - v0.1.0 - [last build on 2014-04-09]
     https://github.com/pcaldredbann/EventsCalendar
     Copyright (c) 2014 Paul Aldred-Bann
     Licensed MIT
 */
 (function ($) {
     "use strict";
+    
+    ko.commitObservable = function (initialValue) {
+        var _temp = initialValue,
+            _actual = ko.observable(initialValue);
+        
+        var result = ko.computed({
+            read: function () {
+                return _actual();
+            },
+            write: function (newValue) {
+                _temp = newValue;
+            },
+            owner: this
+        });
+        
+        result.commit = function () {
+            _actual(_temp);
+        };
+        result.rollback = function () {
+            _temp = _actual();
+        };
+        
+        return result;
+    };
 
     var Calendar = function (data) {
+        this.header = ko.observable(data.period);
         this.weeks = ko.observableArray(ko.utils.arrayMap((function () {
             var periodParts = data.period.split(' '),
-                m = data.months.indexOf(periodParts[0]),
-                y = periodParts[1],
-                startDate = new Date(y, m, 1),
+                startDate = new Date(periodParts[1], data.months.indexOf(periodParts[0]), 1),
                 endDate = null,
                 days = [],
                 weeks = [];
@@ -28,8 +51,8 @@
             while (startDate.getTime() < endDate.getTime()) {
                 days.push({
                     date: new Date(startDate),
-                    event: null,
-                    scheduleEvent: data.scheduleEvent
+                    scheduledEvent: undefined,
+                    onScheduledEventChange: data.onScheduledEventChange
                 });
                 startDate.setDate(startDate.getDate() + 1);
             }
@@ -45,6 +68,16 @@
         }()), function (week) {
             return new CalendarWeek(week);
         }));
+        this.days = ko.computed(function () {
+            if (this.weeks()) {
+                var temp = [];
+                for (var i = 0; i < this.weeks().length; i++) {
+                    temp.push(this.weeks()[i].days());
+                }
+                return [].concat.apply([], temp);
+            }
+        }, this);
+        this.selectedDay = ko.observable(undefined);
     };
 
     var CalendarWeek = function (data) {
@@ -54,29 +87,23 @@
     };
 
     var CalendarDay = function (data) {
+        var self = this;
         this.date = ko.observable(data.date);
-        this.event = ko.observable(data.event);
-        this.scheduleEvent = data.scheduleEvent;
+        this.scheduledEvent = ko.commitObservable(data.scheduledEvent);
+        this.scheduledEvent.subscribe(function (newValue) {
+            if (newValue) {
+                if (data.onScheduledEventChange && typeof data.onScheduledEventChange === "function") {
+                    data.onScheduledEventChange.call(self, newValue);
+                }
+            }
+        });
     };
 
     $.fn.EventsCalendar = function (options) {
         options = $.extend({
             period: "April 2014",
-            days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
             months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-            formatDate: function (value) {
-                var d = value.getDate(),
-                    m = value.getMonth(),
-                    y = value.getFullYear();
-
-                return [d, m, y].join("-");
-            },
-            scheduleEvent: function (event) {
-                this.event(event);
-            },
-            clearScheduledEvent: function () {
-                this.event(null);
-            }
+            onScheduledEventChange: function () {}
         }, options);
 
         return this.each(function () {
